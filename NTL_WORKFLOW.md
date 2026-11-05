@@ -360,8 +360,16 @@ per-class recall, unseen balanced accuracy, runtime, and GPU memory. The
 notebook cannot select the winning layer without these real runs because the
 competition data and checkpoints are not available in this workspace.
 
-This workspace is not a Git repository, so `git diff` is unavailable. The
-in-place fine-tuning change is visible by searching the LoRA notebook for
+Git is now initialized in this workspace. The current baseline commit is
+`30b7c0d`. To inspect future edits:
+
+```bash
+git diff --stat
+git diff -- ntl-fork664-m25.ipynb
+git log --oneline --max-count=5
+```
+
+The in-place fine-tuning change is visible by searching the LoRA notebook for
 `layers_kept`, `EXPERIMENTS`, and `spec = dict(PRESETS[CFG['backbone']])`.
 The submission-notebook clarification is visible by searching
 `ntl-fork664-m25.ipynb` for `Submission notebook: what the layer settings mean`
