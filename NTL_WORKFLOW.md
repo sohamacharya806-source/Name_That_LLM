@@ -300,6 +300,41 @@ The submission run is now protected by `RUN_SUBMISSION` in Section 6:
 This prevents an accidental final submission from being created before the
 source-held-out experiment is complete.
 
+### Honest per-member fold CV
+
+Section 8.5 now provides `RUN_MEMBER_CV = True`. Run it before LOSO when you
+want to determine whether one member dominates a class or whether the blend
+is helping. It runs prompt-held-out folds using only adapters whose names end
+in `_f0` through `_f4`, then writes:
+
+* `member_cv/member_cv_summary.csv`: fold-level balanced accuracy and accuracy.
+* `member_cv/<member>_oof.parquet`: out-of-fold labels and predictions.
+* `member_cv/confusion_<member>.csv/.png`: one confusion matrix per member.
+* `member_cv/run_f*.log`: bounded logs for troubleshooting.
+
+The current five-member final transformer ensemble is still
+`q14v5`, `q8v5`, `ll8v5`, `n14b`, and `q25_14` (alongside any complementary
+members already enabled). Honest fold CV may report fewer than five members:
+`n14b` and `q25_14` are skipped unless fold-specific adapters are attached.
+This is intentional. Scoring a full-data adapter on a held-out prompt would
+leak that prompt through its pretrained weights and make the confusion matrix
+overly optimistic. The final submission can use all five; the CV report must
+not pretend that non-fold checkpoints are honest OOF predictions.
+
+Do not change a member's `keep=24` to `keep=16` or `keep=12` unless a
+checkpoint trained for that exact backbone depth exists. The safe experiment
+is to keep the compatible backbone depth and change the frozen readout layer
+list (`L`). A truncation error means the adapter and backbone metadata are
+incompatible, not that fewer layers are universally better.
+
+The recommended order on the `ensemble` branch is:
+
+1. Run Section 8.5 and inspect member confusion matrices and recall.
+2. Run Section 9 LOSO with the selected five-member production configuration.
+3. Compare balanced accuracy, per-class recall, and source-by-source
+   confusion matrices.
+4. Only then set `RUN_SUBMISSION = True` and produce the submission.
+
 LOSO is not automatically a completely unseen-model test. It prevents the
 official held-out rows from being used by the per-run readout fitting and
 removes exact held-out-text matches from external files. However, the
