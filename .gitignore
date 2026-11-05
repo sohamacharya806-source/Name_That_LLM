@@ -1,0 +1,12 @@
+__pycache__/
+.ipynb_checkpoints/
+figs/
+figs_diag/
+loso_ensemble/
+submission.parquet
+*.csv
+*.parquet
+*.npz
+*.npy
+*.pt
+*.safetensors

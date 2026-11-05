@@ -280,8 +280,21 @@ Section 7 is label-free test-distribution analysis. It cannot prove accuracy.
 Section 9 is the accuracy check: for each source, it holds out every row from
 that source, fits the inference readouts on all remaining official sources,
 runs the same `infer.py` ensemble on the held-out source, and aggregates the
-predictions as out-of-fold results. It requires `source_dataset` or `source` in `train.csv`. Missing source values are grouped
-under the explicit `__missing__` bucket.
+predictions as out-of-fold results. It requires `source_dataset` or `source`
+in `train.csv`. Missing source values are grouped under the explicit
+`__missing__` bucket.
+
+Run LOSO **before** making the final submission if you will use its results to
+choose weights, members, layer settings, or data sources. Running it after a
+submission is still useful as an audit, but it cannot improve or retroactively
+validate the already-submitted file.
+
+LOSO is not automatically a completely unseen-model test. It prevents the
+official held-out rows from being used by the per-run readout fitting and
+removes exact held-out-text matches from external files. However, the
+pre-trained adapter/checkpoint weights may have been trained on overlapping
+sources or prompts before this notebook starts. A strict unseen-model claim
+requires training a fresh adapter separately inside each source-held-out fold.
 
 In the new Section 9 cell:
 
@@ -309,6 +322,37 @@ Use the aggregate balanced accuracy and per-class recall—not the real test
 post-run diagnostics—to decide whether a strategy generalises. A source with
 very few rows or missing classes should be interpreted separately; report its
 row count and class coverage alongside its score.
+
+## What data the submission ensemble actually uses
+
+The actual submission notebook is not only `train.csv`; the inputs are used by
+different members:
+
+| Input | Used by |
+|---|---|
+| Competition `train.csv` | All supervised readouts, Gaussian heads, TF-IDF, SVC, and validation splits |
+| Competition `test.csv` | Final inference rows only; it has no labels |
+| `nlm_matched_clean.parquet` (`EXTRA`) | TF-IDF/distortion training and, when `--svc_w > 0`, SVC training |
+| `nlm_pool_v5.parquet` (`POOL`) | SVC training only when `--svc_w > 0` |
+| Pre-trained adapter folders | Frozen transformer members; not trained by this notebook |
+| `comp_logit.npy` | Complementary frozen stack when `--comp_w > 0` |
+| ATLAS bundle | ATLAS member when `--atlas_w > 0` |
+
+The current Section 6 command passes:
+
+```text
+--extra <EXTRA> --extra_w 0.5 --pool <POOL> --svc_w 1.5
+```
+
+Therefore `EXTRA` and `POOL` are not unused. `EXTRA` affects the TF-IDF
+member and SVC; `POOL` affects SVC because `svc_w=1.5`. If a member weight is
+zero, that member's data is intentionally skipped. Check the notebook output
+for `matched-clean extra rows` and `svc4 fit rows` to verify actual usage.
+
+For LOSO, source-filtered copies of `EXTRA` and `POOL` are created when those
+files contain `source_dataset` or `source`. If an external file lacks a source
+column, it cannot be strictly excluded from the held-out source and the
+notebook reports a warning.
 
 For each run, save a row containing `experiment_name`, `backbone`,
 `layers_kept`, `extra_paths`, `epochs`, `seed`, validation balanced accuracy,
