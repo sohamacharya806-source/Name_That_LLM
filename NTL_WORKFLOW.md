@@ -289,6 +289,17 @@ choose weights, members, layer settings, or data sources. Running it after a
 submission is still useful as an audit, but it cannot improve or retroactively
 validate the already-submitted file.
 
+The submission run is now protected by `RUN_SUBMISSION` in Section 6:
+
+1. Set `RUN_SUBMISSION = False`.
+2. Run the notebook through the setup cells and then run Section 9 LOSO.
+3. Inspect the LOSO metrics and confusion matrices.
+4. Choose/freeze the strategy.
+5. Rerun Section 6 with `RUN_SUBMISSION = True`.
+
+This prevents an accidental final submission from being created before the
+source-held-out experiment is complete.
+
 LOSO is not automatically a completely unseen-model test. It prevents the
 official held-out rows from being used by the per-run readout fitting and
 removes exact held-out-text matches from external files. However, the
