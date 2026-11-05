@@ -343,8 +343,9 @@ different members:
 |---|---|
 | Competition `train.csv` | All supervised readouts, Gaussian heads, TF-IDF, SVC, and validation splits |
 | Competition `test.csv` | Final inference rows only; it has no labels |
-| `nlm_matched_clean.parquet` (`EXTRA`) | TF-IDF/distortion training and, when `--svc_w > 0`, SVC training |
-| `nlm_pool_v5.parquet` (`POOL`) | SVC training only when `--svc_w > 0` |
+| | `nlm_matched_clean.parquet` (`EXTRA`) | TF-IDF/distortion training and, when `--svc_w > 0`, SVC training |
+| `ntl_open_pool.parquet` (`POOL`, preferred) | SVC training only when `--svc_w > 0`; the 212k Open Pool is preferred automatically |
+| `nlm_pool_v5.parquet` (`POOL`, fallback) | Used only when `ntl_open_pool.parquet` is not attached |
 | Pre-trained adapter folders | Frozen transformer members; not trained by this notebook |
 | `comp_logit.npy` | Complementary frozen stack when `--comp_w > 0` |
 | ATLAS bundle | ATLAS member when `--atlas_w > 0` |
@@ -360,10 +361,12 @@ member and SVC; `POOL` affects SVC because `svc_w=1.5`. If a member weight is
 zero, that member's data is intentionally skipped. Check the notebook output
 for `matched-clean extra rows` and `svc4 fit rows` to verify actual usage.
 
-For LOSO, source-filtered copies of `EXTRA` and `POOL` are created when those
-files contain `source_dataset` or `source`. If an external file lacks a source
-column, it cannot be strictly excluded from the held-out source and the
-notebook reports a warning.
+For LOSO, source-filtered copies of `EXTRA` and `POOL` are created before every
+fold when those files contain `source_dataset` or `source`. The preferred
+`ntl_open_pool.parquet` is required to have one of those columns; otherwise
+LOSO stops rather than silently leaking the large pool into validation. If a
+non-primary external file lacks a source column, it is reported as
+not-strictly-filterable.
 
 For each run, save a row containing `experiment_name`, `backbone`,
 `layers_kept`, `extra_paths`, `epochs`, `seed`, validation balanced accuracy,
